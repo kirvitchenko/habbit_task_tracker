@@ -1,0 +1,16 @@
+version: '0.1'
+
+services:
+  db:
+    image: postgres:15
+    container_name: habbit_tracker_db
+    env_file:
+      - .env
+    ports:
+      - 5472:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
