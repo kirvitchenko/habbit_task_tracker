@@ -13,7 +13,7 @@ class BaseCurrentTaskSchema(BaseModel):
     status: TaskStatusChoices
 
 
-class CurrentTaskSchema(BaseCurrentTaskSchema):
+class CurrentTaskViewSchema(BaseCurrentTaskSchema):
     id: PositiveInt
 
 
