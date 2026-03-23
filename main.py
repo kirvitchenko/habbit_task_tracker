@@ -1,7 +1,4 @@
 from fastapi import FastAPI
 
 
-app = FastAPI(title='HabbitTaskTracker')
-
-
-
+app = FastAPI(title="HabbitTaskTracker")
