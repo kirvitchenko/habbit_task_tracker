@@ -1,22 +1,22 @@
 from datetime import datetime
 
-from pydantic import BaseModel, PositiveInt, Field, StringConstraints
-from sqlalchemy.sql.annotation import Annotated
+from pydantic import BaseModel, PositiveInt, Field
 
 from models.task import TaskStatusChoices
 
 
-class BaseCurrentTaskSchema(BaseModel):
-    name: str = Field(max_length=100)
+class BaseTaskSchema(BaseModel):
+    title: str = Field(max_length=100)
     description: str | None
-    date: datetime
+    due_date: datetime
+    deadline: datetime
     status: TaskStatusChoices
 
 
-class CurrentTaskViewSchema(BaseCurrentTaskSchema):
+class TaskViewSchema(BaseTaskSchema):
     id: PositiveInt
+    created_at: datetime
 
 
-class CurrentTaskUpdateSchema(BaseCurrentTaskSchema):
+class TaskUpdateSchema(BaseTaskSchema):
     pass
-
