@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from pydantic import BaseModel, PositiveInt, Field
 
@@ -8,8 +8,8 @@ from app.models.task import TaskStatusChoices
 class BaseTaskSchema(BaseModel):
     title: str = Field(max_length=100)
     description: str | None
-    due_date: datetime
-    deadline: datetime
+    due_date: date
+    deadline: date
     status: TaskStatusChoices
 
 
