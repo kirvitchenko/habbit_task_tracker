@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, PositiveInt, Field
 
-from models.task import TaskStatusChoices
+from app.models.task import TaskStatusChoices
 
 
 class BaseTaskSchema(BaseModel):
