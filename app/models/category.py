@@ -1,11 +1,11 @@
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.db.base import BaseModel
 from app.models.mixins import IdAndCreatedMixin
 
 
-class CategoryModel(IdAndCreatedMixin, Base):
+class CategoryModel(IdAndCreatedMixin, BaseModel):
     __tablename__ = "categories"
 
     title = Column(String(100))

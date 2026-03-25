@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import Column, Integer, String, Text, Date, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.db.base import BaseModel
 from app.models.mixins import IdAndCreatedMixin
 
 
@@ -13,7 +13,7 @@ class TaskStatusChoices(enum.Enum):
     done = "done"
 
 
-class TaskModel(IdAndCreatedMixin, Base):
+class TaskModel(IdAndCreatedMixin, BaseModel):
     __tablename__ = "tasks"
 
     title = Column(String(100))
