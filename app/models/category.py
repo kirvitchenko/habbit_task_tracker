@@ -10,5 +10,8 @@ class CategoryModel(IdAndCreatedMixin, BaseModel):
 
     title = Column(String(100))
     tasks = relationship(
-        "app.models.task.TaskModel", back_populates="category", uselist=True
+        "app.models.task.TaskModel",
+        back_populates="category",
+        uselist=True,
+        lazy="joined",
     )

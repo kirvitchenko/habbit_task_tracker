@@ -21,5 +21,5 @@ class TaskModel(IdAndCreatedMixin, BaseModel):
     due_date = Column(Date, nullable=True)
     deadline = Column(Date, nullable=True)
     status = Column(Enum(TaskStatusChoices), default=TaskStatusChoices.backlog)
-    category_id = Column(Integer, ForeignKey("categories.id"))
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     category = relationship("app.models.category.CategoryModel", back_populates="tasks")
