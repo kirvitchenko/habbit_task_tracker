@@ -19,21 +19,15 @@ class TaskService:
 
     @staticmethod
     async def retrieve_task(db: AsyncSession, task_id: int):
-        result = await db.execute(
-            select(TaskModel).filter(TaskModel.id == task_id)
-        )
+        result = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
         return task
 
     @staticmethod
-    async def update_task(
-        db: AsyncSession, task_id: int, task_data: TaskUpdateSchema
-    ):
-        result = await db.execute(
-            select(TaskModel).filter(TaskModel.id == task_id)
-        )
+    async def update_task(db: AsyncSession, task_id: int, task_data: TaskUpdateSchema):
+        result = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
@@ -48,9 +42,7 @@ class TaskService:
 
     @staticmethod
     async def delete_task(db: AsyncSession, task_id: int):
-        result = await db.execute(
-            select(TaskModel).filter(TaskModel.id == task_id)
-        )
+        result = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
@@ -59,9 +51,7 @@ class TaskService:
 
     @staticmethod
     async def processed_task(db: AsyncSession, task_id: int):
-        result = await db.execute(
-            select(TaskModel).filter(TaskModel.id == task_id)
-        )
+        result = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
@@ -70,9 +60,7 @@ class TaskService:
 
     @staticmethod
     async def done_task(db: AsyncSession, task_id: int):
-        result = await db.execute(
-            select(TaskModel).filter(TaskModel.id == task_id)
-        )
+        result = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
@@ -80,7 +68,7 @@ class TaskService:
         await db.commit()
 
     @staticmethod
-    async def filtered_tasks(
+    async def list_task(
         db: AsyncSession, status: TaskStatusChoices, due_date: date, deadline: date
     ):
         stmt = select(TaskModel)
