@@ -12,7 +12,7 @@ class BaseTaskSchema(BaseModel):
     description: Optional[str] = None
     due_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: TaskStatusChoices
+    status: Optional[TaskStatusChoices] = None
     category: Optional[CategoryViewSchema] = None
 
 

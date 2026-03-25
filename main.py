@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v_1.task import router as task_router
+from app.api import router
 
 app = FastAPI(title="HabbitTaskTracker")
-app.include_router(task_router)
+app.include_router(router)

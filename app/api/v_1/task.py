@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.task import TaskStatusChoices
@@ -9,7 +9,7 @@ from app.schemas.task import TaskUpdateSchema, TaskViewSchema
 from app.services.task import TaskService
 from app.utils.depends import get_async_db
 
-router = APIRouter(prefix="/api/v1/tasks")
+router = APIRouter(prefix="/tasks")
 
 
 @router.post("/", response_model=TaskViewSchema, status_code=status.HTTP_201_CREATED)
