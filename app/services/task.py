@@ -10,76 +10,78 @@ from app.utils.exceptions import NotFoundError
 
 class TaskService:
     @staticmethod
-    async def create_task(task_body: TaskUpdateSchema, session: AsyncSession):
-        task = TaskModel(**task_body.model_dump())
-        session.add(task)
-        await session.commit()
-        await session.refresh(task)
+    async def create_task(db: AsyncSession, task_data: TaskUpdateSchema):
+        task = TaskModel(**task_data.model_dump())
+        db.add(task)
+        await db.commit()
+        await db.refresh(task)
         return task
 
     @staticmethod
-    async def retrieve_task(session: AsyncSession, task_id: int):
-        result = await session.execute(
+    async def retrieve_task(db: AsyncSession, task_id: int):
+        result = await db.execute(
             select(TaskModel).filter(TaskModel.id == task_id)
         )
         task = result.scalar_one_or_none()
+        if not task:
+            raise NotFoundError(f"Task {task_id} has not been found")
         return task
 
     @staticmethod
     async def update_task(
-        session: AsyncSession, task_id: int, task_body: TaskUpdateSchema
+        db: AsyncSession, task_id: int, task_data: TaskUpdateSchema
     ):
-        result = await session.execute(
+        result = await db.execute(
             select(TaskModel).filter(TaskModel.id == task_id)
         )
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
 
-        update_data = task_body.model_dump(exclude_unset=True)
+        update_data = task_data.model_dump(exclude_unset=True)
         for field, value in update_data:
             setattr(task, field, value)
 
-        await session.commit()
-        await session.refresh(task)
+        await db.commit()
+        await db.refresh(task)
         return task
 
     @staticmethod
-    async def delete_task(session: AsyncSession, task_id: int):
-        result = await session.execute(
+    async def delete_task(db: AsyncSession, task_id: int):
+        result = await db.execute(
             select(TaskModel).filter(TaskModel.id == task_id)
         )
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
-        await session.delete(task)
-        await session.commit()
+        await db.delete(task)
+        await db.commit()
 
     @staticmethod
-    async def processed_task(session: AsyncSession, task_id: int):
-        result = await session.execute(
+    async def processed_task(db: AsyncSession, task_id: int):
+        result = await db.execute(
             select(TaskModel).filter(TaskModel.id == task_id)
         )
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
         task.status = TaskStatusChoices.in_process
-        await session.commit()
+        await db.commit()
 
     @staticmethod
-    async def done_task(session: AsyncSession, task_id: int):
-        result = await session.execute(
+    async def done_task(db: AsyncSession, task_id: int):
+        result = await db.execute(
             select(TaskModel).filter(TaskModel.id == task_id)
         )
         task = result.scalar_one_or_none()
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
         task.status = TaskStatusChoices.done
-        await session.commit()
+        await db.commit()
 
     @staticmethod
     async def filtered_tasks(
-        session: AsyncSession, status: TaskStatusChoices, due_date: date, deadline: date
+        db: AsyncSession, status: TaskStatusChoices, due_date: date, deadline: date
     ):
         stmt = select(TaskModel)
 
@@ -90,6 +92,6 @@ class TaskService:
         if deadline:
             stmt = stmt.filter(TaskModel.deadline == deadline)
 
-        result = await session.execute(stmt)
+        result = await db.execute(stmt)
         tasks = result.scalars().all()
         return tasks
