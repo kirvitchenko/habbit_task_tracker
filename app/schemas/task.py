@@ -13,13 +13,13 @@ class BaseTaskSchema(BaseModel):
     due_date: Optional[date] = None
     deadline: Optional[date] = None
     status: Optional[TaskStatusChoices] = None
-    category: Optional[CategoryViewSchema] = None
 
 
 class TaskViewSchema(BaseTaskSchema):
     id: PositiveInt
     created_at: datetime
+    category: Optional[CategoryViewSchema] = None
 
 
 class TaskUpdateSchema(BaseTaskSchema):
-    pass
+    category_id: Optional[int] = None

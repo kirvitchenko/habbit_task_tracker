@@ -16,9 +16,10 @@ class CategoryService:
 
     @staticmethod
     async def get_category_or_404(category_id: int, db: AsyncSession):
-        category = CategoryService.get_category_by_id(category_id=category_id, db=db)
+        category = await CategoryService.get_category_by_id(category_id=category_id, db=db)
         if not category:
             raise NotFoundError(f"Category {category_id} has not been found")
+        return category
 
     @staticmethod
     async def create_category(category_data: CategoryUpdateSchema, db: AsyncSession):
@@ -30,7 +31,7 @@ class CategoryService:
 
     @staticmethod
     async def retrieve_category(category_id: int, db: AsyncSession):
-        return CategoryService.get_category_or_404(category_id=category_id, db=db)
+        return await CategoryService.get_category_or_404(category_id=category_id, db=db)
 
     @staticmethod
     async def list_category(db: AsyncSession):
@@ -41,7 +42,7 @@ class CategoryService:
     async def update_category(
         category_id: int, category_data: CategoryUpdateSchema, db: AsyncSession
     ):
-        category = CategoryService.get_category_or_404(category_id=category_id, db=db)
+        category = await CategoryService.get_category_or_404(category_id=category_id, db=db)
         update_data = category_data.model_dump()
         for key, value in update_data.items():
             setattr(category, key, value)
@@ -52,6 +53,6 @@ class CategoryService:
 
     @staticmethod
     async def delete_category(category_id: int, db: AsyncSession):
-        category = CategoryService.get_category_or_404(category_id=category_id, db=db)
+        category = await CategoryService.get_category_or_404(category_id=category_id, db=db)
         await db.delete(category)
         await db.commit()

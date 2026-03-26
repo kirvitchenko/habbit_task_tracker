@@ -13,5 +13,4 @@ class CategoryModel(IdAndCreatedMixin, BaseModel):
         "app.models.task.TaskModel",
         back_populates="category",
         uselist=True,
-        lazy="joined",
     )

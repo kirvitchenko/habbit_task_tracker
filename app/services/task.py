@@ -2,6 +2,7 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.task import TaskModel, TaskStatusChoices
 from app.schemas.task import TaskUpdateSchema
@@ -11,7 +12,7 @@ from app.utils.exceptions import NotFoundError
 class TaskService:
     @staticmethod
     async def get_task_by_id(db: AsyncSession, task_id: int):
-        task = await db.execute(select(TaskModel).filter(TaskModel.id == task_id))
+        task = await db.execute(select(TaskModel).options(selectinload(TaskModel.category)).filter(TaskModel.id == task_id))
         return task.scalar_one_or_none()
 
     @staticmethod
