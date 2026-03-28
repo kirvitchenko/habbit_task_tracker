@@ -1,58 +1,46 @@
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
+from app.cache.service import RedisService
 from app.models import CategoryModel
-from app.schemas.category import CategoryUpdateSchema
+from app.repository.category import CategoryRepository
+from app.schemas.category import CategoryUpdateSchema, CategoryViewSchema
 from app.utils.exceptions import NotFoundError
 
 
 class CategoryService:
-    @staticmethod
-    async def get_category_by_id(category_id: int, db: AsyncSession):
-        category = await db.execute(
-            select(CategoryModel).where(CategoryModel.id == category_id)
-        )
-        return category.scalar_one_or_none()
+    def __init__(self, repo: CategoryRepository, cache: RedisService):
+        self.repo = repo
+        self.cache = cache
 
-    @staticmethod
-    async def get_category_or_404(category_id: int, db: AsyncSession):
-        category = await CategoryService.get_category_by_id(category_id=category_id, db=db)
+    async def _get_category_or_error(self, category_id) -> CategoryModel:
+        category = await self.repo.get_by_id(category_id=category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} has not been found")
         return category
 
-    @staticmethod
-    async def create_category(category_data: CategoryUpdateSchema, db: AsyncSession):
-        category = CategoryModel(**category_data.model_dump())
-        db.add(category)
-        await db.commit()
-        await db.refresh(category)
-        return category
+    async def get_by_id(self, category_id: int) -> CategoryViewSchema:
+        category = await self._get_category_or_error(category_id=category_id)
+        return CategoryViewSchema.model_validate(category)
 
-    @staticmethod
-    async def retrieve_category(category_id: int, db: AsyncSession):
-        return await CategoryService.get_category_or_404(category_id=category_id, db=db)
+    async def create_category(
+        self, category_data: CategoryUpdateSchema
+    ) -> CategoryViewSchema:
+        category = await self.repo.create(category_data=category_data)
+        return CategoryViewSchema.model_validate(category)
 
-    @staticmethod
-    async def list_category(db: AsyncSession):
-        categories = await db.execute(select(CategoryModel))
-        return categories.scalars().all()
+    async def list_category(self) -> List[CategoryViewSchema]:
+        categories = await self.repo.list()
+        return [CategoryViewSchema.model_validate(category) for category in categories]
 
-    @staticmethod
     async def update_category(
-        category_id: int, category_data: CategoryUpdateSchema, db: AsyncSession
-    ):
-        category = await CategoryService.get_category_or_404(category_id=category_id, db=db)
-        update_data = category_data.model_dump()
-        for key, value in update_data.items():
-            setattr(category, key, value)
+        self, category_id: int, category_data: CategoryUpdateSchema
+    ) -> CategoryViewSchema:
+        category_instance = await self._get_category_or_error(category_id)
+        category = await self.repo.update(
+            category_data=category_data, category=category_instance
+        )
+        return CategoryViewSchema.model_validate(category)
 
-        await db.commit()
-        await db.refresh(category)
-        return category
-
-    @staticmethod
-    async def delete_category(category_id: int, db: AsyncSession):
-        category = await CategoryService.get_category_or_404(category_id=category_id, db=db)
-        await db.delete(category)
-        await db.commit()
+    async def delete_category(self, category_id: int) -> None:
+        category = await self._get_category_or_error(category_id=category_id)
+        await self.repo.delete(category=category)

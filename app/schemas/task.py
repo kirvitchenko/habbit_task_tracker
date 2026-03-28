@@ -3,8 +3,14 @@ from typing import Optional
 
 from pydantic import BaseModel, PositiveInt, Field
 
-from app.models.task import TaskStatusChoices
 from app.schemas.category import CategoryViewSchema
+
+
+
+class TaskFiltersSchema(BaseModel):
+    status: Optional[str]= None
+    due_date: Optional[date] = None
+    deadline: Optional[date] = None
 
 
 class BaseTaskSchema(BaseModel):
@@ -12,7 +18,10 @@ class BaseTaskSchema(BaseModel):
     description: Optional[str] = None
     due_date: Optional[date] = None
     deadline: Optional[date] = None
-    status: Optional[TaskStatusChoices] = None
+    status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class TaskViewSchema(BaseTaskSchema):

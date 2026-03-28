@@ -1,89 +1,65 @@
-from datetime import date
+from typing import List
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
-from app.models.task import TaskModel, TaskStatusChoices
-from app.schemas.task import TaskUpdateSchema
+from app.cache.service import RedisService
+from app.models.task import TaskModel
+from app.repository.task import TaskRepository
+from app.schemas.task import TaskUpdateSchema, TaskFiltersSchema, TaskViewSchema
 from app.utils.exceptions import NotFoundError
 
 
 class TaskService:
-    @staticmethod
-    async def get_task_by_id(db: AsyncSession, task_id: int):
-        task = await db.execute(select(TaskModel).options(selectinload(TaskModel.category)).filter(TaskModel.id == task_id))
-        return task.scalar_one_or_none()
+    def __init__(self, repo: TaskRepository, cache: RedisService):
+        self.repo = repo
+        self.cache = cache
 
-    @staticmethod
-    async def get_task_or_404(db: AsyncSession, task_id: int):
-        task = await TaskService.get_task_by_id(db=db, task_id=task_id)
+    async def _get_task_or_error(self, task_id: int) -> TaskModel:
+        task = await self.repo.get_by_id(task_id=task_id)
         if not task:
             raise NotFoundError(f"Task {task_id} has not been found")
         return task
 
-    @staticmethod
-    async def create_task(db: AsyncSession, task_data: TaskUpdateSchema):
-        task = TaskModel(**task_data.model_dump())
-        db.add(task)
-        await db.commit()
-        await db.refresh(task)
-        return task
+    async def create_task(self, task_data: TaskUpdateSchema) -> TaskViewSchema:
+        alchemy_task_model = await self.repo.create(task_data=task_data)
+        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
+        await self.cache.set(obj_id=alchemy_task_model.id, value=pydantic_task_model.model_dump(mode='json'))
+        return pydantic_task_model
 
-    @staticmethod
-    async def retrieve_task(db: AsyncSession, task_id: int):
-        return await TaskService.get_task_or_404(db=db, task_id=task_id)
+    async def retrieve_task(self, task_id: int) -> TaskViewSchema:
+        cached_task = await self.cache.get(obj_id=task_id)
+        if cached_task:
+            return TaskViewSchema.model_validate(cached_task)
+        alchemy_task_model = await self._get_task_or_error(task_id=task_id)
+        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
+        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
+        return pydantic_task_model
 
-    @staticmethod
-    async def update_task(db: AsyncSession, task_id: int, task_data: TaskUpdateSchema):
-        task = await TaskService.get_task_or_404(db=db, task_id=task_id)
+    async def update_task(
+        self, task_id: int, task_data: TaskUpdateSchema
+    ) -> TaskViewSchema:
+        task_instance = await self._get_task_or_error(task_id=task_id)
+        await self.cache.delete(obj_id=task_id)
+        alchemy_task_model = await self.repo.update(task_data=task_data, task=task_instance)
+        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
+        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
+        return pydantic_task_model
 
-        update_data = task_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(task, field, value)
+    async def delete_task(self, task_id: int) -> None:
+        await self.cache.delete(obj_id=task_id)
+        task = await self._get_task_or_error(task_id=task_id)
+        await self.repo.delete(task)
 
-        await db.commit()
-        await db.refresh(task)
-        return task
+    async def change_status(self, task_id: int, status) -> TaskViewSchema:
+        task = await self._get_task_or_error(task_id=task_id)
+        task.status = status
+        await self.cache.delete(obj_id=task_id)
+        alchemy_task_model = await self.repo.save(task)
+        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
+        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
+        return pydantic_task_model
 
-    @staticmethod
-    async def delete_task(db: AsyncSession, task_id: int):
-        task = await TaskService.get_task_or_404(db=db, task_id=task_id)
-        await db.delete(task)
-        await db.commit()
-
-    @staticmethod
-    async def processed_task(db: AsyncSession, task_id: int):
-        task = await TaskService.get_task_or_404(db=db, task_id=task_id)
-        task.status = TaskStatusChoices.in_process
-        await db.commit()
-        await db.refresh(task)
-        return task
-
-    @staticmethod
-    async def done_task(db: AsyncSession, task_id: int):
-        task = await TaskService.get_task_or_404(db=db, task_id=task_id)
-        task.status = TaskStatusChoices.done
-        await db.commit()
-        await db.refresh(task)
-        return task
-
-    @staticmethod
-    async def list_task(
-        db: AsyncSession,
-        status: TaskStatusChoices | None = None,
-        due_date: date | None = None,
-        deadline: date | None = None,
-    ):
-        stmt = select(TaskModel)
-
-        if status:
-            stmt = stmt.filter(TaskModel.status == status)
-        if due_date:
-            stmt = stmt.filter(TaskModel.due_date == due_date)
-        if deadline:
-            stmt = stmt.filter(TaskModel.deadline == deadline)
-
-        result = await db.execute(stmt)
-        tasks = result.scalars().all()
-        return tasks
+    async def list_task(self, filters: TaskFiltersSchema) -> List[TaskViewSchema]:
+        if not filters:
+            cached_tasks = await self.cache.get_list()
+            return [TaskViewSchema.model_validate(cached_task) for cached_task in cached_tasks.values()]
+        tasks = await self.repo.list(filters=filters)
+        return [TaskViewSchema.model_validate(task) for task in tasks]
