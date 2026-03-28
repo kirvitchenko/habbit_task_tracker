@@ -18,15 +18,23 @@ class CategoryService:
             raise NotFoundError(f"Category {category_id} has not been found")
         return category
 
+    async def _cache_and_return(self, alchemy_model):
+        pydantic_category_model = CategoryViewSchema.model_validate(alchemy_model)
+        await self.cache.set(obj_id=alchemy_model.id, value=pydantic_category_model)
+        return pydantic_category_model
+
     async def get_by_id(self, category_id: int) -> CategoryViewSchema:
-        category = await self._get_category_or_error(category_id=category_id)
-        return CategoryViewSchema.model_validate(category)
+        cached_category = await self.cache.get(category_id)
+        if cached_category:
+            return cached_category
+        alchemy_category_model = await self._get_category_or_error(category_id=category_id)
+        return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def create_category(
         self, category_data: CategoryUpdateSchema
     ) -> CategoryViewSchema:
-        category = await self.repo.create(category_data=category_data)
-        return CategoryViewSchema.model_validate(category)
+        alchemy_category_model = await self.repo.create(category_data=category_data)
+        return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def list_category(self) -> List[CategoryViewSchema]:
         categories = await self.repo.list()
@@ -36,11 +44,13 @@ class CategoryService:
         self, category_id: int, category_data: CategoryUpdateSchema
     ) -> CategoryViewSchema:
         category_instance = await self._get_category_or_error(category_id)
-        category = await self.repo.update(
+        await self.cache.delete(obj_id=category_id)
+        alchemy_category_model = await self.repo.update(
             category_data=category_data, category=category_instance
         )
-        return CategoryViewSchema.model_validate(category)
+        return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def delete_category(self, category_id: int) -> None:
         category = await self._get_category_or_error(category_id=category_id)
+        await self.cache.delete(obj_id=category_id)
         await self.repo.delete(category=category)

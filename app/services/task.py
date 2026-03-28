@@ -18,20 +18,25 @@ class TaskService:
             raise NotFoundError(f"Task {task_id} has not been found")
         return task
 
-    async def create_task(self, task_data: TaskUpdateSchema) -> TaskViewSchema:
-        alchemy_task_model = await self.repo.create(task_data=task_data)
-        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
-        await self.cache.set(obj_id=alchemy_task_model.id, value=pydantic_task_model.model_dump(mode='json'))
+    async def _cache_and_return(self, alchemy_model):
+        pydantic_task_model = TaskViewSchema.model_validate(alchemy_model)
+        await self.cache.set(obj_id=alchemy_model.id, value=pydantic_task_model)
         return pydantic_task_model
 
-    async def retrieve_task(self, task_id: int) -> TaskViewSchema:
+    async def get_by_id(self, task_id: int) -> TaskViewSchema:
         cached_task = await self.cache.get(obj_id=task_id)
         if cached_task:
-            return TaskViewSchema.model_validate(cached_task)
+            return cached_task
         alchemy_task_model = await self._get_task_or_error(task_id=task_id)
-        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
-        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
-        return pydantic_task_model
+        return await self._cache_and_return(alchemy_model=alchemy_task_model)
+
+    async def create_task(self, task_data: TaskUpdateSchema) -> TaskViewSchema:
+        alchemy_task_model = await self.repo.create(task_data=task_data)
+        return await self._cache_and_return(alchemy_model=alchemy_task_model)
+
+    async def list_task(self, filters: TaskFiltersSchema) -> List[TaskViewSchema]:
+        tasks = await self.repo.list(filters=filters)
+        return [TaskViewSchema.model_validate(task) for task in tasks]
 
     async def update_task(
         self, task_id: int, task_data: TaskUpdateSchema
@@ -39,9 +44,7 @@ class TaskService:
         task_instance = await self._get_task_or_error(task_id=task_id)
         await self.cache.delete(obj_id=task_id)
         alchemy_task_model = await self.repo.update(task_data=task_data, task=task_instance)
-        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
-        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
-        return pydantic_task_model
+        return await self._cache_and_return(alchemy_model=alchemy_task_model)
 
     async def delete_task(self, task_id: int) -> None:
         await self.cache.delete(obj_id=task_id)
@@ -53,13 +56,6 @@ class TaskService:
         task.status = status
         await self.cache.delete(obj_id=task_id)
         alchemy_task_model = await self.repo.save(task)
-        pydantic_task_model = TaskViewSchema.model_validate(alchemy_task_model)
-        await self.cache.set(obj_id=task_id, value=pydantic_task_model.model_dump(mode='json'))
-        return pydantic_task_model
+        return await self._cache_and_return(alchemy_model=alchemy_task_model)
 
-    async def list_task(self, filters: TaskFiltersSchema) -> List[TaskViewSchema]:
-        if not filters:
-            cached_tasks = await self.cache.get_list()
-            return [TaskViewSchema.model_validate(cached_task) for cached_task in cached_tasks.values()]
-        tasks = await self.repo.list(filters=filters)
-        return [TaskViewSchema.model_validate(task) for task in tasks]
+

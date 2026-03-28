@@ -20,7 +20,7 @@ async def create_task(
 
 @router.get("/{task_id}", response_model=TaskViewSchema)
 async def retrieve_task(task_id: int, service: TaskService = Depends(get_task_service)):
-    return await service.retrieve_task(task_id=task_id)
+    return await service.get_by_id(task_id=task_id)
 
 
 @router.patch(

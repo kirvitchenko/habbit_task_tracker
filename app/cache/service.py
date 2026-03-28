@@ -1,37 +1,39 @@
 import json
-from typing import Any
+from typing import Any, TypeVar, Generic, Type
 
 import redis.asyncio as redis
+from pydantic import BaseModel
 
+from app.schemas.category import CategoryViewSchema
+from app.schemas.task import TaskViewSchema
 
-class RedisService:
+BaseSchema = TypeVar('BaseSchema', bound=BaseModel)
+
+class RedisService(Generic[BaseSchema]):
     model_key = None
+    pydantic_model: Type[BaseSchema]
 
     def __init__(self, client: redis.Redis):
         self.client = client
 
-    async def get(self, obj_id: int):
+    async def get(self, obj_id: int) -> BaseSchema | None:
         data = await self.client.hget(name=self.model_key, key=str(obj_id))
         if data:
-            return json.loads(data)
+            return self.pydantic_model(**json.loads(data))
         return None
 
-    async def get_list(self):
-        data = await self.client.hgetall(name=self.model_key)
-        return {k: json.loads(v) for k, v in data.items()}
-
-    async def set(self, obj_id:int, value: Any, ttl: int = 300):
-        await self.client.hset(name=self.model_key, key=str(obj_id), value=json.dumps(value))
+    async def set(self, obj_id:int, value: BaseSchema, ttl: int = 300) -> None:
+        await self.client.hset(name=self.model_key, key=str(obj_id), value=json.dumps(value.model_dump(mode='json')))
         await self.client.expire(name=self.model_key, time=ttl)
 
-    async def delete(self, obj_id):
+    async def delete(self, obj_id) -> None:
         await self.client.hdel(name=self.model_key, key=str(obj_id))
 
-    async def delete_all(self):
-        return await self.client.delete(name=self.model_key)
 
 class TaskRedisService(RedisService):
     model_key = 'task'
+    pydantic_model = TaskViewSchema
 
 class CategoryRedisService(RedisService):
     model_key = 'category'
+    pydantic_model = CategoryViewSchema
