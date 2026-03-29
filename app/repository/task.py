@@ -1,3 +1,7 @@
+"""Task Repository"""
+
+from typing import List
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -10,7 +14,12 @@ class TaskRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_by_id(self, task_id) -> TaskModel | None:
+    async def get_by_id(self, task_id: int) -> TaskModel | None:
+        """
+        Get one task
+        :param task_id:
+        :return TaskModel | None:
+        """
         task = await self.db.execute(
             select(TaskModel)
             .options(selectinload(TaskModel.category))
@@ -19,13 +28,23 @@ class TaskRepository:
         return task.scalar_one_or_none()
 
     async def create(self, task_data: TaskUpdateSchema) -> TaskModel:
+        """
+        Create one task
+        :param task_data:
+        :return TaskModel:
+        """
         task = TaskModel(**task_data.model_dump())
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task, attribute_names=["category"])
         return task
 
-    async def list(self, filters: TaskFiltersSchema):
+    async def list(self, filters: TaskFiltersSchema) -> List[TaskModel]:
+        """
+        Get list of tasks with filters if filters
+        :param filters:
+        :return List[TaskModel]:
+        """
         stmt = select(TaskModel).options(selectinload(TaskModel.category))
 
         for field, value in filters.model_dump(exclude_unset=True).items():
@@ -35,6 +54,12 @@ class TaskRepository:
         return tasks.scalars().all()
 
     async def update(self, task: TaskModel, task_data: TaskUpdateSchema) -> TaskModel:
+        """
+        Update one task
+        :param task:
+        :param task_data:
+        :return TaskModel:
+        """
         update_data = task_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(task, field, value)
@@ -43,10 +68,20 @@ class TaskRepository:
         return task
 
     async def delete(self, task: TaskModel) -> None:
+        """
+        Delete one task f
+        :param task:
+        :return None:
+        """
         await self.db.delete(task)
         await self.db.commit()
 
-    async def save(self, task: TaskModel):
+    async def save(self, task: TaskModel) -> TaskModel:
+        """
+        Save task for updating
+        :param task:
+        :return TaskModel:
+        """
         self.db.add(task)
         await self.db.commit()
         await self.db.refresh(task)

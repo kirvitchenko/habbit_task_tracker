@@ -1,3 +1,5 @@
+"""Category model in DB"""
+
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 
@@ -6,6 +8,8 @@ from app.models.mixins import IdAndCreatedMixin
 
 
 class CategoryModel(IdAndCreatedMixin, BaseModel):
+    """ORM category model"""
+
     __tablename__ = "categories"
 
     title = Column(String(100))

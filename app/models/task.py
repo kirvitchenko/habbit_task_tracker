@@ -1,3 +1,5 @@
+"""Task model in DB"""
+
 import enum
 
 from sqlalchemy import Column, Integer, String, Text, Date, Enum, ForeignKey
@@ -8,12 +10,16 @@ from app.models.mixins import IdAndCreatedMixin
 
 
 class TaskStatusChoices(enum.Enum):
+    """Class for status-choices"""
+
     backlog = "backlog"
     in_process = "in_process"
     done = "done"
 
 
 class TaskModel(IdAndCreatedMixin, BaseModel):
+    """ORM task model"""
+
     __tablename__ = "tasks"
 
     title = Column(String(100))
