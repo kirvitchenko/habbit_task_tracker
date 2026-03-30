@@ -1,0 +1,26 @@
+[project]
+name = "habbit-task-tracker"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.18.4",
+    "asyncpg>=0.31.0",
+    "celery>=5.6.3",
+    "celery-types>=0.26.0",
+    "dotenv>=0.9.9",
+    "fastapi>=0.135.1",
+    "psycopg2-binary>=2.9.11",
+    "redis>=7.4.0",
+    "ruff>=0.15.7",
+    "sqlalchemy>=2.0.48",
+    "uvicorn>=0.42.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = 'py314'
+
+[toll.ruff.lint]
+select = ['E', 'W', 'F', 'I', 'C']
+ingone = ['E501']
