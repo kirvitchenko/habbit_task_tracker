@@ -2,12 +2,12 @@
 
 import redis.asyncio as redis
 
-from app.core.config import REDIS_DB, REDIS_PORT, REDIS_HOST
+from app.core.config import REDIS_CACHE_DB, REDIS_PORT, REDIS_HOST
 
 
 def create_redis_client():
     client = redis.Redis(
-        db=REDIS_DB,
+        db=REDIS_CACHE_DB,
         port=REDIS_PORT,
         host=REDIS_HOST,
         decode_responses=True,

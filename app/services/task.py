@@ -1,5 +1,5 @@
 from typing import List
-
+from app.tasks.notifications import status_change_task
 from app.cache.service import RedisService
 from app.models.task import TaskModel
 from app.repository.task import TaskRepository
@@ -66,4 +66,5 @@ class TaskService:
         task.status = status
         await self.cache.delete(obj_id=task_id)
         alchemy_task_model = await self.repo.save(task)
+        status_change_task.delay(task_name=alchemy_task_model.title, status=alchemy_task_model.status.value)
         return await self._cache_and_return(alchemy_model=alchemy_task_model)

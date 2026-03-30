@@ -58,7 +58,7 @@ class RedisService(Generic[BaseSchema]):
         Needs obj_id to delete
         Function return None
         """
-        await self.client.hdel(name=self.model_key, key=str(obj_id))
+        await self.client.hdel(self.model_key, str(obj_id))
 
 
 class TaskRedisService(RedisService[TaskViewSchema]):
