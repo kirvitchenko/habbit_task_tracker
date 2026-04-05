@@ -3,6 +3,7 @@
 from typing import List
 
 from app.cache.service import RedisService
+from app.kafka.producer import CategoryKafkaService
 from app.models import CategoryModel
 from app.repository.category import CategoryRepository
 from app.schemas.category import CategoryUpdateSchema, CategoryViewSchema
@@ -12,9 +13,10 @@ from app.utils.exceptions import NotFoundError
 class CategoryService:
     """Service for category"""
 
-    def __init__(self, repo: CategoryRepository, cache: RedisService):
+    def __init__(self, repo: CategoryRepository, cache: RedisService, producer: CategoryKafkaService):
         self.repo = repo
         self.cache = cache
+        self.producer = producer
 
     async def _get_category_or_error(self, category_id: int) -> CategoryModel:
         """Get one category"""
@@ -49,6 +51,7 @@ class CategoryService:
     ) -> CategoryViewSchema:
         """Create category and update cache"""
         alchemy_category_model = await self.repo.create(category_data=category_data)
+        await self.producer.create_category_event(category_id=alchemy_category_model.id, category_data=category_data)
         return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def list_category(self) -> List[CategoryViewSchema]:
@@ -65,6 +68,7 @@ class CategoryService:
         alchemy_category_model = await self.repo.update(
             category_data=category_data, category=category_instance
         )
+        await self.producer.update_category_event(category_id=category_id, category_data=category_data)
         return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def delete_category(self, category_id: int) -> None:
@@ -72,3 +76,4 @@ class CategoryService:
         category = await self._get_category_or_error(category_id=category_id)
         await self.cache.delete(obj_id=category_id)
         await self.repo.delete(category=category)
+        await self.producer.delete_category_event(category_id=category_id)

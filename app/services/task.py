@@ -1,4 +1,8 @@
 from typing import List
+
+from celery.signals import task_sent
+
+from app.kafka.producer import TaskKafkaService
 from app.tasks.notifications import status_change_task
 from app.cache.service import RedisService
 from app.models.task import TaskModel
@@ -8,9 +12,12 @@ from app.utils.exceptions import NotFoundError
 
 
 class TaskService:
-    def __init__(self, repo: TaskRepository, cache: RedisService):
+    def __init__(
+        self, repo: TaskRepository, cache: RedisService, producer: TaskKafkaService
+    ):
         self.repo = repo
         self.cache = cache
+        self.producer = producer
 
     async def _get_task_or_error(self, task_id: int) -> TaskModel:
         """Get task or error"""
@@ -36,6 +43,9 @@ class TaskService:
     async def create_task(self, task_data: TaskUpdateSchema) -> TaskViewSchema:
         """Create one task"""
         alchemy_task_model = await self.repo.create(task_data=task_data)
+        await self.producer.task_create_event(
+            task_id=alchemy_task_model.id, task_data=task_data
+        )
         return await self._cache_and_return(alchemy_model=alchemy_task_model)
 
     async def list_task(self, filters: TaskFiltersSchema) -> List[TaskViewSchema]:
@@ -52,19 +62,29 @@ class TaskService:
         alchemy_task_model = await self.repo.update(
             task_data=task_data, task=task_instance
         )
+        await self.producer.task_update_event(task_id=task_id, task_data=task_data)
         return await self._cache_and_return(alchemy_model=alchemy_task_model)
 
     async def delete_task(self, task_id: int) -> None:
         """Delete task"""
         await self.cache.delete(obj_id=task_id)
         task = await self._get_task_or_error(task_id=task_id)
+        await self.producer.task_delete_event(task_id=task_id)
         await self.repo.delete(task)
 
     async def change_status(self, task_id: int, status) -> TaskViewSchema:
         """Change task status"""
         task = await self._get_task_or_error(task_id=task_id)
+        old_status = task.status
         task.status = status
         await self.cache.delete(obj_id=task_id)
         alchemy_task_model = await self.repo.save(task)
-        status_change_task.delay(task_name=alchemy_task_model.title, status=alchemy_task_model.status.value)
+        status_change_task.delay(
+            task_name=alchemy_task_model.title, status=alchemy_task_model.status.value
+        )
+        await self.producer.task_change_status_event(
+            task_id=task_id,
+            old_status=old_status.value,
+            new_status=alchemy_task_model.status.value,
+        )
         return await self._cache_and_return(alchemy_model=alchemy_task_model)
