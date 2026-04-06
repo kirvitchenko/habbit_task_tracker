@@ -27,6 +27,16 @@ services:
       - "9092:9092"
     restart: unless-stopped
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.1
+    container_name: habbit_tracker_clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    restart: unless-stopped
+
   db:
     image: postgres:15
     container_name: habbit_tracker_db
@@ -41,3 +51,8 @@ services:
 volumes:
   postgres_data:
   kafka_data:
+  clickhouse_data:
+
+networks:
+  default:
+    name: habbit_network

@@ -13,7 +13,12 @@ from app.utils.exceptions import NotFoundError
 class CategoryService:
     """Service for category"""
 
-    def __init__(self, repo: CategoryRepository, cache: RedisService, producer: CategoryKafkaService):
+    def __init__(
+        self,
+        repo: CategoryRepository,
+        cache: RedisService,
+        producer: CategoryKafkaService,
+    ):
         self.repo = repo
         self.cache = cache
         self.producer = producer
@@ -51,7 +56,9 @@ class CategoryService:
     ) -> CategoryViewSchema:
         """Create category and update cache"""
         alchemy_category_model = await self.repo.create(category_data=category_data)
-        await self.producer.create_category_event(category_id=alchemy_category_model.id, category_data=category_data)
+        await self.producer.create_category_event(
+            category_id=alchemy_category_model.id, category_data=category_data
+        )
         return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def list_category(self) -> List[CategoryViewSchema]:
@@ -68,7 +75,9 @@ class CategoryService:
         alchemy_category_model = await self.repo.update(
             category_data=category_data, category=category_instance
         )
-        await self.producer.update_category_event(category_id=category_id, category_data=category_data)
+        await self.producer.update_category_event(
+            category_id=category_id, category_data=category_data
+        )
         return await self._cache_and_return(alchemy_model=alchemy_category_model)
 
     async def delete_category(self, category_id: int) -> None:

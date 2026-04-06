@@ -10,11 +10,11 @@ from typing_extensions import AsyncGenerator
 
 from app.cache.service import RedisService, TaskRedisService, CategoryRedisService
 from app.db.session import SessionLocal
-from app.kafka.producer import KafkaService, TaskKafkaService, \
-    CategoryKafkaService
+from app.kafka.producer import KafkaService, TaskKafkaService, CategoryKafkaService
 from app.repository.category import CategoryRepository
 from app.repository.task import TaskRepository
 from app.services.category import CategoryService
+from app.services.clickhouse_service import ClickhouseTaskDashBoardService
 from app.services.task import TaskService
 
 
@@ -63,8 +63,15 @@ def get_kafka_task_service(
 ):
     return TaskKafkaService(producer=kafka_producer)
 
-def get_kafka_category_service(kafka_producer: AIOKafkaProducer = Depends(get_kafka_producer)):
+
+def get_kafka_category_service(
+    kafka_producer: AIOKafkaProducer = Depends(get_kafka_producer),
+):
     return CategoryKafkaService(producer=kafka_producer)
+
+
+def get_clickhouse_task_dashboard_service() -> ClickhouseTaskDashBoardService:
+    return ClickhouseTaskDashBoardService()
 
 
 def get_task_service(
@@ -80,7 +87,7 @@ def get_task_service(
 def get_category_service(
     db: AsyncSession = Depends(get_async_db),
     cache: RedisService = Depends(get_redis_category_service),
-    producer : CategoryKafkaService = Depends(get_kafka_category_service)
+    producer: CategoryKafkaService = Depends(get_kafka_category_service),
 ) -> CategoryService:
     """Get category service"""
     repo = CategoryRepository(db)
@@ -89,3 +96,6 @@ def get_category_service(
 
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 CategoryServiceDep = Annotated[CategoryService, Depends(get_category_service)]
+ClickhouseDashBoardTaskServiceDep = Annotated[
+    ClickhouseTaskDashBoardService, Depends(get_clickhouse_task_dashboard_service)
+]

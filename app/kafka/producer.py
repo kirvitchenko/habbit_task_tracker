@@ -14,7 +14,11 @@ class KafkaService:
         self.producer = producer
 
     async def _send(self, key: str, value: dict) -> None:
-        await self.producer.send(topic=self.topic, value=json.dumps(value).encode('utf-8'), key=key.encode('utf-8'))
+        await self.producer.send(
+            topic=self.topic,
+            value=json.dumps(value).encode("utf-8"),
+            key=key.encode("utf-8"),
+        )
 
 
 class TaskKafkaService(KafkaService):
@@ -26,7 +30,7 @@ class TaskKafkaService(KafkaService):
         value = {
             "event_type": "task.created",
             "task_id": task_id,
-            "data": task_data.model_dump(),
+            "task_data": task_data.model_dump(),
             "timestamp": datetime.now().isoformat(),
         }
         await self._send(value=value, key=str(task_id))

@@ -4,11 +4,13 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
+    "aiohttp>=3.13.5",
     "aiokafka>=0.13.0",
     "alembic>=1.18.4",
     "asyncpg>=0.31.0",
     "celery>=5.6.3",
     "celery-types>=0.26.0",
+    "clickhouse-connect>=0.15.1",
     "dotenv>=0.9.9",
     "fastapi>=0.135.1",
     "psycopg2-binary>=2.9.11",

@@ -1,7 +1,5 @@
 from typing import List
 
-from celery.signals import task_sent
-
 from app.kafka.producer import TaskKafkaService
 from app.tasks.notifications import status_change_task
 from app.cache.service import RedisService
